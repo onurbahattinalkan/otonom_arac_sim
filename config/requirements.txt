@@ -1,0 +1,6 @@
+# Producer dependencies (local machine)
+paho-mqtt==2.1.0
+
+# Lambda dependencies (include in Lambda deployment package)
+influxdb-client==1.44.0
+urllib3==1.26.20
