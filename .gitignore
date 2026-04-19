@@ -1,0 +1,5 @@
+config/credentials.py
+certs/
+__pycache__/
+*.zip
+.env
