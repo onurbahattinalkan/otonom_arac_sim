@@ -1,11 +1,10 @@
 import json
 import time
 import random
-import ssl
 import logging
 from datetime import datetime, timezone
 
-import paho.mqtt.client as mqtt
+from paho.mqtt import client as mqtt
 
 from config.credentials import (
     AWS_IOT_ENDPOINT,
@@ -27,19 +26,19 @@ RECONNECT_DELAY_SECS = 5
 # MQTT callbacks
 # ---------------------------------------------------------------------------
 
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
+def on_connect(client, userdata, _connect_flags, reason_code, _properties):
+    if reason_code == 0:
         log.info("Connected to AWS IoT Core.")
     else:
-        log.error("Connection failed with code %d.", rc)
+        log.error("Connection failed: %s", reason_code)
 
 
-def on_disconnect(client, userdata, rc):
-    if rc != 0:
-        log.warning("Unexpected disconnection (rc=%d). Will retry.", rc)
+def on_disconnect(client, userdata, _disconnect_flags, reason_code, _properties):
+    if reason_code != 0:
+        log.warning("Unexpected disconnection: %s. Will retry.", reason_code)
 
 
-def on_publish(client, userdata, mid):
+def on_publish(client, userdata, mid, _reason_code, _properties):
     log.debug("Message published (mid=%d).", mid)
 
 
@@ -62,16 +61,31 @@ def generate_telemetry(vehicle_id: str) -> dict:
 
 def build_client() -> mqtt.Client:
     """Create and configure an MQTT client with TLS for AWS IoT Core."""
-    client = mqtt.Client(client_id=AWS_IOT_CLIENT_ID)
+    # Callback API sürümünü açıkça belirtin (v2 için zorunlu)
+    client = mqtt.Client(
+        callback_api_version=mqtt.CallbackAPIVersion.VERSION2, 
+        client_id=AWS_IOT_CLIENT_ID
+    )
+    
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_publish = on_publish
+
+    # Dosya yollarının varlığını kontrol edin
+    import os
+    for path_name, path in {
+        "CA_CERT": CA_CERT_PATH,
+        "CLIENT_CERT": CLIENT_CERT_PATH,
+        "PRIVATE_KEY": PRIVATE_KEY_PATH
+    }.items():
+        if not os.path.exists(path):
+            log.error(f"Dosya bulunamadı ({path_name}): {os.path.abspath(path)}")
+            raise FileNotFoundError(f"{path} dizinde mevcut değil.")
 
     client.tls_set(
         ca_certs=CA_CERT_PATH,
         certfile=CLIENT_CERT_PATH,
         keyfile=PRIVATE_KEY_PATH,
-        tls_version=ssl.PROTOCOL_TLS_CLIENT,
     )
     return client
 
