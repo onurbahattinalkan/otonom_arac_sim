@@ -309,7 +309,7 @@ Producer → AWS IoT Core → Kinesis → Lambda → InfluxDB
 
 ---
 
-**Oluşturma Tarihi**: 2024  
+**Oluşturma Tarihi**: 2026  
 **Versiyon**: 1.0  
 **Durum**: ✅ Production Ready
 
